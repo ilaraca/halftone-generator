@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halftone 3D Panel Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .upload-area:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .control-group input[type="number"],
+        .control-group input[type="range"],
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .control-group input[type="range"] {
+            padding: 0;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        #canvasPreview {
+            max-width: 100%;
+            border-radius: 10px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            display: none;
+        }
+
+        .stats {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .stats h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stat-value {
+            color: #764ba2;
+            font-weight: bold;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Halftone 3D Panel Generator</h1>
+            <p class="subtitle">Transforme suas imagens em painéis 3D impressos com efeito pontilhado</p>
+        </header>
+
+        <div class="content">
+            <!-- Painel Esquerdo: Upload e Controles -->
+            <div class="panel">
+                <h2>⚙️ Configurações</h2>
+                
+                <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                    <input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg">
+                    <div class="upload-icon">📸</div>
+                    <p><strong>Clique para fazer upload</strong></p>
+                    <p style="color: #888; font-size: 0.9em;">PNG ou JPG</p>
+                </div>
+                <img id="imagePreview" alt="Preview da imagem">
+
+                <div style="margin-top: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">🎯 Presets</h3>
+                    <div class="grid-layout">
+                        <button type="button" onclick="loadPreset('reference_fast')" style="margin-top: 0;">Foto Referência</button>
+                        <button type="button" onclick="loadPreset('reference_hq')" style="margin-top: 0;">Foto HQ</button>
+                        <button type="button" onclick="loadPreset('standard')" style="margin-top: 0;">Padrão (80×140)</button>
+                    </div>
+                    <div style="background: #d1ecf1; padding: 12px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #0c5460;">
+                        <p style="margin: 0; font-size: 0.9em; color: #0c5460;">
+                            <strong>💡 Dica:</strong> Após exportar o JSON, use OpenSCAD para gerar o STL:
+                            <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">openscad panel.scad -o panel.stl</code>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="settings-block" style="margin-top: 30px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Dimensões da Placa (mm)</h3>
+                    <div class="grid-layout">
+                        <div class="control-group">
+                            <label>Largura</label>
+                            <input type="number" id="width" value="54" min="10" max="300" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Altura</label>
+                            <input type="number" id="height" value="27" min="10" max="300" step="1">
+                        </div>
+                        <div class="control-group">
+                            <label>Espessura Base</label>
+                            <input type="number" id="baseThickness" value="1.6" min="0.5" max="10" step="0.1">
+                        </div>
+                        <div class="control-group">
+                            <label>Margem</label>
+                            <input type="number" id="margin" value="0.5" min="0" max="20" step="0.5">
+                        </div>
+                    </div>
+
+                    <h3 style="color: #667eea; margin: 20px 0 15px;">Grid e Furos (mm)</h3>
+                    <div class="grid-layout">
+                        <div class="control-group">
+                            <label>Distância Grid (pitch)</label>
+                            <input type="number" id="gridPitch" value="1.6" min="0.5" max="10" step="0.01">
+                        </div>
+                        <div class="control-group">
+                            <label>Parede Mínima</label>
+                            <input type="number" id="wallMin" value="0.6" min="0.1" max="5" step="0.1">
+                            <p style="font-size: 0.85em; color: #888; margin-top: 5px;">
+                                Espessura mínima de material entre furos
+                            </p>
+                        </div>
+                        <div class="control-group">
+                            <label>Raio Mínimo</label>
+                            <input type="number" id="radiusMin" value="0.15" min="0.1" max="5" step="0.01">
+                        </div>
+                        <div class="control-group">
+                            <label>Raio Máximo</label>
+                            <input type="number" id="radiusMax" value="0.55" min="0.1" max="5" step="0.01">
+                        </div>
+                        <div class="control-group">
+                            <label>Segmentos Círculo</label>
+                            <input type="number" id="segments" value="24" min="6" max="64" step="1">
+                            <p style="font-size: 0.85em; color: #888; margin-top: 5px;">
+                                Suavidade dos furos (mais = mais suave, mais lento)
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3 style="color: #667eea; margin: 20px 0 15px;">Ajustes de Imagem</h3>
+                    <div class="control-group">
+                        <label>Mapping</label>
+                        <select id="mapping">
+                            <option value="light_bigger" selected>Claros = furo maior</option>
+                            <option value="dark_bigger">Escuros = furo maior</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Gamma <span class="range-value" id="gammaValue">1.0</span></label>
+                        <input type="range" id="gamma" min="0.3" max="3.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label>Contraste <span class="range-value" id="contrastValue">1.2</span></label>
+                        <input type="range" id="contrast" min="0.5" max="2.0" step="0.1" value="1.2">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="invert">
+                        <label for="invert">Inverter (claro/escuro)</label>
+                    </div>
+                </div>
+
+                <button id="generateBtn" disabled>📐 Gerar OpenSCAD (.scad)</button>
+                
+                <details style="margin-top: 15px;">
+                    <summary style="cursor: pointer; color: #667eea; font-weight: 600; user-select: none;">⚙️ Mostrar opções avançadas</summary>
+                    <div style="margin-top: 15px;">
+                        <button id="downloadBtn" class="secondary" style="margin-top: 0;">💾 Avançado: Baixar JSON</button>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Painel Direito: Preview e Estatísticas -->
+            <div class="panel">
+                <h2>👁️ Preview</h2>
+                <canvas id="canvasPreview"></canvas>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processando imagem...</p>
+                </div>
+
+                <div class="stats" id="stats">
+                    <h3>📊 Estatísticas</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Pontos Gerados:</span>
+                        <span class="stat-value" id="statPoints">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Grid (cols × rows):</span>
+                        <span class="stat-value" id="statGrid">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tempo de Processamento:</span>
+                        <span class="stat-value" id="statTime">-</span>
+                    </div>
+                    <div class="stat-item" id="statWarning" style="display: none;">
+                        <span class="stat-label" style="color: #dc3545;">⚠️ Aviso:</span>
+                        <span class="stat-value" style="color: #dc3545;" id="statWarningText">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== VARIÁVEIS GLOBAIS ====================
+        let uploadedImage = null;
+        let generatedJSON = null;
+        let previewDebounceTimer = null;
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        document.getElementById('generateBtn').addEventListener('click', generateAndDownloadSCAD);
+        document.getElementById('downloadBtn').addEventListener('click', downloadJSON);
+
+        // Atualizar valores dos sliders
+        document.getElementById('gamma').addEventListener('input', (e) => {
+            document.getElementById('gammaValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+        document.getElementById('contrast').addEventListener('input', (e) => {
+            document.getElementById('contrastValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // ==================== UPLOAD DE IMAGEM ====================
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    uploadedImage = img;
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('generateBtn').disabled = false;
+                    // Atualizar preview imediatamente no upload
+                    if (previewDebounceTimer) {
+                        clearTimeout(previewDebounceTimer);
+                    }
+                    updatePreviewImmediate();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ==================== PREVIEW 2D ====================
+        function updatePreview() {
+            if (!uploadedImage) return;
+            
+            // Debounce para performance
+            if (previewDebounceTimer) {
+                clearTimeout(previewDebounceTimer);
+            }
+            previewDebounceTimer = setTimeout(() => {
+                updatePreviewImmediate();
+            }, 120);
+        }
+        
+        function updatePreviewImmediate() {
+            if (!uploadedImage) return;
+
+            const params = getParameters();
+            const canvas = document.getElementById('canvasPreview');
+            const ctx = canvas.getContext('2d');
+
+            // Calcular dimensões do grid
+            const usableWidth = params.width - 2 * params.margin;
+            const usableHeight = params.height - 2 * params.margin;
+            
+            // Validar dimensões utilizáveis
+            if (usableWidth <= 0 || usableHeight <= 0 || params.gridPitch <= 0) {
+                const warningEl = document.getElementById('statWarning');
+                const warningTextEl = document.getElementById('statWarningText');
+                warningEl.style.display = 'flex';
+                warningTextEl.textContent = 'Margem muito grande para o tamanho da placa. Ajuste margin/gridPitch.';
+                canvas.style.display = 'none';
+                document.getElementById('stats').style.display = 'none';
+                return;
+            }
+            
+            const cols = Math.max(1, Math.floor(usableWidth / params.gridPitch));
+            const rows = Math.max(1, Math.floor(usableHeight / params.gridPitch));
+
+            // Configurar canvas com escala maior para melhor visualização
+            const scale = 8;
+            const canvasWidth = Math.max(cols * scale, 400);
+            const canvasHeight = Math.max(rows * scale, 400);
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            canvas.style.display = 'block';
+
+            // Calcular proporções da placa no canvas
+            const aspectRatio = params.width / params.height;
+            let displayWidth, displayHeight, offsetX, offsetY;
+            
+            if (aspectRatio > canvasWidth / canvasHeight) {
+                displayWidth = canvasWidth;
+                displayHeight = canvasWidth / aspectRatio;
+                offsetX = 0;
+                offsetY = (canvasHeight - displayHeight) / 2;
+            } else {
+                displayHeight = canvasHeight;
+                displayWidth = canvasHeight * aspectRatio;
+                offsetX = (canvasWidth - displayWidth) / 2;
+                offsetY = 0;
+            }
+
+            // Fundo do canvas (área fora da placa)
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // 1. DESENHAR FUNDO VAZADO (para simular transparência através dos furos)
+            // Padrão quadriculado para mostrar que é vazado
+            const checkSize = 8;
+            for (let cy = 0; cy < canvasHeight; cy += checkSize) {
+                for (let cx = 0; cx < canvasWidth; cx += checkSize) {
+                    if ((Math.floor(cx / checkSize) + Math.floor(cy / checkSize)) % 2 === 0) {
+                        ctx.fillStyle = '#d0d0d0';
+                    } else {
+                        ctx.fillStyle = '#e8e8e8';
+                    }
+                    ctx.fillRect(cx, cy, checkSize, checkSize);
+                }
+            }
+
+            // 2. DESENHAR PLACA SÓLIDA COMPLETA
+            // Sombra da placa
+            ctx.fillStyle = '#999';
+            ctx.fillRect(offsetX + 4, offsetY + 4, displayWidth, displayHeight);
+            
+            // Placa principal (sólida)
+            ctx.fillStyle = '#cccccc';
+            ctx.fillRect(offsetX, offsetY, displayWidth, displayHeight);
+
+            // Borda da placa
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(offsetX, offsetY, displayWidth, displayHeight);
+
+            // 3. PROCESSAR IMAGEM
+            const gridData = sampleImageToGrid(uploadedImage, cols, rows, params);
+
+            // 4. CALCULAR RAIOS EFETIVOS COM CLAMP
+            const warningEl = document.getElementById('statWarning');
+            const warningTextEl = document.getElementById('statWarningText');
+            
+            if (params.wallMin >= params.gridPitch) {
+                warningEl.style.display = 'flex';
+                warningTextEl.textContent = 'Parede mínima (wallMin) não pode ser maior ou igual ao gridPitch. Ajuste os valores.';
+                canvas.style.display = 'none';
+                document.getElementById('stats').style.display = 'none';
+                return;
+            }
+            
+            const maxAllowedRadius = Math.max(0, (params.gridPitch - params.wallMin) / 2);
+            const radiusMaxEffective = Math.max(0.05, Math.min(params.radiusMax, maxAllowedRadius));
+            const radiusMinEffective = Math.max(0.05, Math.min(params.radiusMin, radiusMaxEffective * 0.85));
+
+            // 5. DESENHAR FUROS VAZADOS
+            const marginPx = (params.margin / params.width) * displayWidth;
+            const gridAreaWidth = displayWidth - 2 * marginPx;
+            const gridAreaHeight = displayHeight - 2 * marginPx;
+            const cellWidth = gridAreaWidth / cols;
+            const cellHeight = gridAreaHeight / rows;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    // Garantir que value está no range [0, 1]
+                    let value = gridData[row][col];
+                    value = Math.max(0, Math.min(1, value));
+                    
+                    // Calcular raio usando lerp com valores efetivos
+                    let radius = lerp(radiusMinEffective, radiusMaxEffective, value);
+                    radius = Math.max(radius, 0.05);
+
+                    // Posição do furo no canvas
+                    const x = offsetX + marginPx + (col + 0.5) * cellWidth;
+                    const y = offsetY + marginPx + (row + 0.5) * cellHeight;
+                    const r = (radius / params.gridPitch) * Math.min(cellWidth, cellHeight);
+
+                    // Desenhar furo vazado simples (fiel ao SCAD)
+                    ctx.fillStyle = '#111';  // Furo escuro (vazio)
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Borda clara para visibilidade
+                    ctx.strokeStyle = '#666';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            // Desenhar área da margem (overlay semi-transparente)
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(offsetX + marginPx, offsetY + marginPx, gridAreaWidth, gridAreaHeight);
+            ctx.setLineDash([]);
+            
+            // Esconder warning se tudo estiver OK
+            document.getElementById('statWarning').style.display = 'none';
+        }
+
+        // ==================== PROCESSAR IMAGEM ====================
+        function drawImageCover(ctx, img, targetW, targetH) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+
+    // limpa o canvas e garante que a imagem não "soma" por cima de algo antigo
+    ctx.clearRect(0, 0, targetW, targetH);
+
+    const scale = Math.max(targetW / iw, targetH / ih);
+    const scaledW = iw * scale;
+    const scaledH = ih * scale;
+    const offsetX = (targetW - scaledW) / 2;
+    const offsetY = (targetH - scaledH) / 2;
+
+    ctx.imageSmoothingEnabled = true; // pode testar false se quiser visual mais "pixel"
+    ctx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+}
+        function sampleImageToGrid(img, cols, rows, params) {
+            // Criar canvas temporário
+            const canvas = document.createElement('canvas');
+            canvas.width = cols;
+            canvas.height = rows;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+            // Desenhar imagem usando cover (sem distorção)
+            drawImageCover(ctx, img, cols, rows);
+            const imageData = ctx.getImageData(0, 0, cols, rows);
+            const pixels = imageData.data;
+
+            // Converter para matriz de luminância
+            const matrix = [];
+            for (let row = 0; row < rows; row++) {
+                matrix[row] = [];
+                for (let col = 0; col < cols; col++) {
+                    const idx = (row * cols + col) * 4;
+                    const r = pixels[idx];
+                    const g = pixels[idx + 1];
+                    const b = pixels[idx + 2];
+                    
+                    // Luminância
+                    let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                    
+                    // Aplicar contraste e gamma
+                    lum = applyContrastGamma(lum, params.contrast, params.gamma);
+                    
+                    // Inverter se necessário (antes do mapping)
+                    if (params.invert) {
+                        lum = 1 - lum;
+                    }
+                    
+                    // Aplicar mapping configurável
+                    if (params.mapping === 'dark_bigger') {
+                        lum = 1 - lum;
+                    }
+                    
+                    // Garantir que o valor está no range [0, 1]
+                    lum = Math.max(0, Math.min(1, lum));
+                    
+                    matrix[row][col] = lum;
+                }
+            }
+
+            return matrix;
+        }
+
+        function applyContrastGamma(value, contrast, gamma) {
+            // Aplicar contraste
+            value = (value - 0.5) * contrast + 0.5;
+            value = Math.max(0, Math.min(1, value));
+            
+            // Aplicar gamma
+            value = Math.pow(value, 1 / gamma);
+            
+            return value;
+        }
+
+        // ==================== GERAR JSON ====================
+        async function generateJSON() {
+            if (!uploadedImage) return Promise.reject('Nenhuma imagem carregada');
+
+            return new Promise((resolve, reject) => {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('stats').style.display = 'none';
+                document.getElementById('generateBtn').disabled = true;
+
+                // Usar setTimeout para permitir que a UI atualize
+                setTimeout(() => {
+                const startTime = performance.now();
+                const params = getParameters();
+                const warningEl = document.getElementById('statWarning');
+                const warningTextEl = document.getElementById('statWarningText');
+                
+                // Calcular grid
+                const usableWidth = params.width - 2 * params.margin;
+                const usableHeight = params.height - 2 * params.margin;
+                
+                // Validar dimensões utilizáveis
+                if (usableWidth <= 0 || usableHeight <= 0 || params.gridPitch <= 0) {
+                    warningEl.style.display = 'flex';
+                    warningTextEl.textContent = 'Margem muito grande para o tamanho da placa. Ajuste margin/gridPitch.';
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('stats').style.display = 'block';
+                    document.getElementById('generateBtn').disabled = false;
+                    reject('Dimensões inválidas');
+                    return;
+                }
+                
+                const cols = Math.max(1, Math.floor(usableWidth / params.gridPitch));
+                const rows = Math.max(1, Math.floor(usableHeight / params.gridPitch));
+
+                // Validar wallMin vs gridPitch
+                if (params.wallMin >= params.gridPitch) {
+                    warningEl.style.display = 'flex';
+                    warningTextEl.textContent = 'Parede mínima (wallMin) não pode ser maior ou igual ao gridPitch. Ajuste os valores.';
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('stats').style.display = 'block';
+                    document.getElementById('generateBtn').disabled = false;
+                    reject('Parâmetros inválidos');
+                    return;
+                }
+
+                // Processar imagem
+                const gridData = sampleImageToGrid(uploadedImage, cols, rows, params);
+
+                // Calcular raios efetivos com clamp robusto
+                const maxAllowedRadius = Math.max(0, (params.gridPitch - params.wallMin) / 2);
+                const radiusMaxEffective = Math.max(0.05, Math.min(params.radiusMax, maxAllowedRadius));
+                const radiusMinEffective = Math.max(0.05, Math.min(params.radiusMin, radiusMaxEffective * 0.85));
+
+                // Gerar JSON
+                const jsonData = buildJSON(params, gridData, cols, rows, radiusMinEffective, radiusMaxEffective);
+                generatedJSON = jsonData;
+
+                const endTime = performance.now();
+                const genTime = ((endTime - startTime) / 1000).toFixed(2);
+
+                // Atualizar estatísticas
+                document.getElementById('statPoints').textContent = jsonData.holes.length.toLocaleString();
+                document.getElementById('statGrid').textContent = `${cols} × ${rows}`;
+                document.getElementById('statTime').textContent = `${genTime}s`;
+                
+                // Mostrar aviso se radiusMax foi clampado
+                if (params.radiusMax > maxAllowedRadius) {
+                    warningEl.style.display = 'flex';
+                    warningTextEl.textContent = `Raio máximo clampado para ${radiusMaxEffective.toFixed(2)}mm (parede mínima: ${params.wallMin}mm)`;
+                } else {
+                    warningEl.style.display = 'none';
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats').style.display = 'block';
+                document.getElementById('generateBtn').disabled = false;
+                resolve(jsonData);
+                }, 100);
+            });
+        }
+
+        function buildJSON(params, gridData, cols, rows, radiusMinEffective, radiusMaxEffective) {
+            // Calcular posições dos furos
+            const startX = params.margin + params.gridPitch / 2;
+            const startY = params.margin + params.gridPitch / 2;
+            const holes = [];
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    // Garantir que value está no range [0, 1]
+                    let value = gridData[row][col];
+                    value = Math.max(0, Math.min(1, value));
+                    
+                    // Calcular raio usando lerp com valores efetivos (já clampados)
+                    let radius = lerp(radiusMinEffective, radiusMaxEffective, value);
+                    radius = Math.max(radius, 0.05);
+                    
+                    const x = startX + col * params.gridPitch;
+                    const y = startY + row * params.gridPitch;
+                    
+                    holes.push({
+                        x: parseFloat(x.toFixed(3)),
+                        y: parseFloat(y.toFixed(3)),
+                        radius: parseFloat(radius.toFixed(3))
+                    });
+                }
+            }
+
+            return {
+                width: params.width,
+                height: params.height,
+                thickness: params.baseThickness,
+                gridPitch: params.gridPitch,
+                margin: params.margin,
+                segments: params.segments,
+                holes: holes
+            };
+        }
+
+        // ==================== GERAR E BAIXAR SCAD ====================
+        async function generateAndDownloadSCAD() {
+            if (!uploadedImage) return;
+            
+            // Se já existe JSON gerado, apenas baixa SCAD
+            if (generatedJSON) {
+                downloadSCAD();
+                return;
+            }
+            
+            // Caso contrário, gera JSON primeiro e depois baixa SCAD
+            try {
+                await generateJSON();
+                // Pequeno delay para garantir que o JSON foi processado
+                setTimeout(() => {
+                    downloadSCAD();
+                }, 150);
+            } catch (error) {
+                console.error('Erro ao gerar JSON:', error);
+            }
+        }
+
+        // ==================== DOWNLOAD JSON ====================
+        function downloadJSON() {
+            if (!generatedJSON) return;
+
+            const jsonString = JSON.stringify(generatedJSON, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'halftone_panel.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== DOWNLOAD SCAD ====================
+        function downloadSCAD() {
+            if (!generatedJSON) {
+                return;
+            }
+
+            if (!generatedJSON.holes || generatedJSON.holes.length === 0) {
+                return;
+            }
+
+            let scadContent = `// ============================================
+// Gerador de Painel Perfurado Halftone
+// ============================================
+// Arquivo gerado automaticamente
+// Execute: openscad panel.scad -o panel.stl
+// Para renderização mais rápida, use: openscad --render panel.scad -o panel.stl
+// Ou com threads: openscad -j 4 panel.scad -o panel.stl (ajuste -j conforme seus cores)
+// ============================================
+
+// Parâmetros da placa
+width = ${generatedJSON.width};
+height = ${generatedJSON.height};
+thickness = ${generatedJSON.thickness};
+gridPitch = ${generatedJSON.gridPitch};
+margin = ${generatedJSON.margin};
+segments = ${generatedJSON.segments};
+
+// Configuração de qualidade (OTIMIZAÇÃO MÁXIMA PARA PERFORMANCE)
+// Reduzindo segmentos ao mínimo aceitável para renderização muito mais rápida
+$fa = 60;  // Minimum angle: ~6 segmentos máximo por círculo
+$fs = 0.8;  // Minimum size: para furos ~0.7mm resulta em ~5-6 segmentos
+// Resultado: ~6 segmentos por furo (vs 32 antes) = 81% menos faces = MUITO mais rápido!
+// Nota: 6 segmentos ainda é aceitável para furos pequenos em impressão 3D
+
+// Dados dos furos (${generatedJSON.holes.length} furos)
+holes = [
+`;
+
+            // Adicionar todos os furos (sem truncar)
+            for (let i = 0; i < generatedJSON.holes.length; i++) {
+                const hole = generatedJSON.holes[i];
+                const comma = i < generatedJSON.holes.length - 1 ? ',' : '';
+                scadContent += `    [${hole.x}, ${hole.y}, ${hole.radius}]${comma}\n`;
+            }
+
+            scadContent += `];
+
+// ============================================
+// GERAÇÃO DA GEOMETRIA (OTIMIZADA: 2D + EXTRUDE)
+// ============================================
+// Abordagem 2D é MUITO mais rápida que diferença 3D com muitos cylinders
+// Criamos a forma 2D perfurada e depois extrudamos em 3D
+
+linear_extrude(height = thickness) {
+    difference() {
+        // Placa base 2D (quadrado sólido)
+        square([width, height]);
+        
+        // Remover círculos dos furos em 2D (muito mais eficiente que cylinders 3D)
+        for (hole = holes) {
+            translate([hole[0], hole[1]])
+                circle(r = hole[2]);
+        }
+    }
+}
+`;
+
+            const blob = new Blob([scadContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'panel.scad';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== UTILITÁRIOS ====================
+        function getParameters() {
+            return {
+                width: parseFloat(document.getElementById('width').value),
+                height: parseFloat(document.getElementById('height').value),
+                baseThickness: parseFloat(document.getElementById('baseThickness').value),
+                gridPitch: parseFloat(document.getElementById('gridPitch').value),
+                wallMin: parseFloat(document.getElementById('wallMin').value),
+                radiusMin: parseFloat(document.getElementById('radiusMin').value),
+                radiusMax: parseFloat(document.getElementById('radiusMax').value),
+                margin: parseFloat(document.getElementById('margin').value),
+                segments: parseInt(document.getElementById('segments').value),
+                gamma: parseFloat(document.getElementById('gamma').value),
+                contrast: parseFloat(document.getElementById('contrast').value),
+                mapping: document.getElementById('mapping').value,
+                invert: document.getElementById('invert').checked
+            };
+        }
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        // ==================== PRESETS ====================
+        function loadPreset(type) {
+            const presets = {
+                reference_fast: {
+                    width: 54,
+                    height: 27,
+                    baseThickness: 1.6,
+                    gridPitch: 1.6,
+                    wallMin: 0.6,
+                    radiusMin: 0.15,
+                    radiusMax: 0.55,
+                    margin: 0.5,
+                    segments: 24,
+                    gamma: 1.0,
+                    contrast: 1.2,
+                    mapping: 'light_bigger',
+                    invert: false
+                },
+                reference_hq: {
+                    width: 54,
+                    height: 27,
+                    baseThickness: 1.6,
+                    gridPitch: 1.2,
+                    wallMin: 0.6,
+                    radiusMin: 0.12,
+                    radiusMax: 0.45,
+                    margin: 0.5,
+                    segments: 18,
+                    gamma: 1.0,
+                    contrast: 1.3,
+                    mapping: 'light_bigger',
+                    invert: false
+                },
+                standard: {
+                    width: 80,
+                    height: 140,
+                    baseThickness: 2.0,
+                    gridPitch: 2.0,
+                    wallMin: 0.6,
+                    radiusMin: 0.3,
+                    radiusMax: 0.7,
+                    margin: 3.0,
+                    segments: 32,
+                    gamma: 1.0,
+                    contrast: 1.0,
+                    mapping: 'light_bigger',
+                    invert: false
+                }
+            };
+
+            const preset = presets[type];
+            if (!preset) return;
+
+            // Aplicar todos os valores
+            document.getElementById('width').value = preset.width;
+            document.getElementById('height').value = preset.height;
+            document.getElementById('baseThickness').value = preset.baseThickness;
+            document.getElementById('gridPitch').value = preset.gridPitch;
+            document.getElementById('wallMin').value = preset.wallMin || 0.6;
+            document.getElementById('radiusMin').value = preset.radiusMin;
+            document.getElementById('radiusMax').value = preset.radiusMax;
+            document.getElementById('margin').value = preset.margin;
+            document.getElementById('segments').value = preset.segments;
+            document.getElementById('gamma').value = preset.gamma;
+            document.getElementById('contrast').value = preset.contrast;
+            document.getElementById('mapping').value = preset.mapping || 'light_bigger';
+            document.getElementById('invert').checked = preset.invert;
+
+            // Atualizar displays
+            document.getElementById('gammaValue').textContent = preset.gamma.toFixed(1);
+            document.getElementById('contrastValue').textContent = preset.contrast.toFixed(1);
+
+            // Atualizar preview
+            if (uploadedImage) {
+                updatePreview();
+            }
+        }
+
+        // Atualizar preview quando alterar parâmetros
+        const controls = ['width', 'height', 'baseThickness', 'gridPitch', 'wallMin', 'radiusMin', 'radiusMax', 
+                         'margin', 'segments', 'gamma', 'contrast', 'mapping', 'invert'];
+        controls.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                // Inputs numéricos e ranges usam 'input' para feedback imediato
+                if (element.type === 'number' || element.type === 'range') {
+                    element.addEventListener('input', updatePreview);
+                } else {
+                    // Selects e checkboxes usam 'change'
+                    element.addEventListener('change', updatePreview);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
