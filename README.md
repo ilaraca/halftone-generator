@@ -1,5 +1,5 @@
 # Gerador de Painéis Perfurados Halftone
-
+ 
 Sistema completo para gerar painéis perfurados estilo halftone a partir de imagens, usando OpenSCAD para gerar STL watertight e pronto para impressão 3D.
 
 ## 📋 Fluxo de Trabalho
